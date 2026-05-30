@@ -1,0 +1,21 @@
+CREATE TABLE emails (
+    id BIGSERIAL PRIMARY KEY,
+
+    subject VARCHAR(500),
+
+    content TEXT NOT NULL,
+
+    is_spam BOOLEAN NOT NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE trained_models (
+    id BIGSERIAL PRIMARY KEY,
+
+    model_name VARCHAR(200) NOT NULL,
+
+    model_path VARCHAR(500) NOT NULL,
+
+    trained_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
