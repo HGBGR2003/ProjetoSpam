@@ -8,10 +8,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
-
 @Service
 @RequiredArgsConstructor
-public class ImportEmailService{
+public class ImportEmailService {
     private final EmailRepository repository;
 
     public void importSpamEmails() throws IOException {
