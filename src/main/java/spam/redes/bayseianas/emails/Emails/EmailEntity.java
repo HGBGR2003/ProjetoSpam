@@ -19,6 +19,9 @@ public class EmailEntity {
 
     private String subject;
 
+    @Column(unique = true)
+    private String sourceFile;
+
     @Column(columnDefinition = "TEXT")
     private String content;
 
@@ -32,6 +35,10 @@ public class EmailEntity {
 
     public String getSubject() {
         return subject;
+    }
+
+    public String getSourceFile() {
+        return sourceFile;
     }
 
     public String getContent() {
@@ -53,6 +60,10 @@ public class EmailEntity {
 
     public void setSubject(String subject) {
         this.subject = subject;
+    }
+
+    public void setSourceFile(String sourceFile) {
+        this.sourceFile = sourceFile;
     }
 
     public void setContent(String content) {
