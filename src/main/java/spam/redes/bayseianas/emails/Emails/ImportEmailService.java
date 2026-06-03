@@ -23,30 +23,41 @@ public class ImportEmailService {
     private final EmailCleanerService cleanerService;
 
     public void importSpamEmails() throws IOException {
-        Path pastaSpam = Paths.get("dataset/spam");
+        importEmailsFrom("spam", true);
+    }
 
-        if (!Files.exists(pastaSpam) || !Files.isDirectory(pastaSpam)) {
-            log.warn("Pasta dataset/spam não encontrada em: {}", pastaSpam.toAbsolutePath());
+    public void importHamEmails() throws IOException {
+        importEmailsFrom("ham", false);
+    }
+
+    private void importEmailsFrom(String subpasta, boolean isSpam) throws IOException {
+        Path pasta = Paths.get("dataset", subpasta);
+
+        if (!Files.exists(pasta) || !Files.isDirectory(pasta)) {
+            log.warn("Pasta dataset/{} não encontrada em: {}", subpasta, pasta.toAbsolutePath());
             return;
         }
 
-        try (Stream<Path> arquivos = Files.list(pastaSpam)) {
+        String tipo = isSpam ? "spam" : "ham";
+
+        try (Stream<Path> arquivos = Files.list(pasta)) {
             long total = arquivos
                     .filter(Files::isRegularFile)
                     .filter(p -> p.toString().endsWith(".txt"))
-                    .peek(this::salvarEmailSpam)
+                    .peek(arquivo -> salvarEmail(arquivo, isSpam, subpasta))
                     .count();
 
-            log.info("Importação concluída: {} emails spam processados.", total);
+            log.info("Importação concluída: {} emails {} processados.", total, tipo);
         }
     }
 
-    private void salvarEmailSpam(Path arquivo) {
+    private void salvarEmail(Path arquivo, boolean isSpam, String subpasta) {
         try {
             String nomeArquivo = arquivo.getFileName().toString();
+            String sourceFile = subpasta + "/" + nomeArquivo;
 
-            if (repository.existsBySourceFile(nomeArquivo)) {
-                log.debug("Ignorado (já importado): {}", nomeArquivo);
+            if (repository.existsBySourceFile(sourceFile)) {
+                log.debug("Ignorado (já importado): {}", sourceFile);
                 return;
             }
 
@@ -54,18 +65,18 @@ public class ImportEmailService {
             String conteudoLimpo = cleanerService.clean(conteudoBruto);
 
             if (conteudoLimpo.isBlank()) {
-                log.warn("Arquivo ignorado (conteúdo vazio após limpeza): {}", nomeArquivo);
+                log.warn("Arquivo ignorado (conteúdo vazio após limpeza): {}", sourceFile);
                 return;
             }
 
             EmailEntity email = new EmailEntity();
-            email.setSourceFile(nomeArquivo);
+            email.setSourceFile(sourceFile);
             email.setContent(conteudoLimpo);
-            email.setIsSpam(true);
+            email.setIsSpam(isSpam);
             email.setCreatedAt(LocalDateTime.now());
 
             repository.save(email);
-            log.debug("Salvo: {}", nomeArquivo);
+            log.debug("Salvo: {}", sourceFile);
 
         } catch (Exception e) {
             log.error("Erro ao processar arquivo {}: {}", arquivo.getFileName(), e.getMessage());
