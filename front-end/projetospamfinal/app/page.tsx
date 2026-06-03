@@ -1,64 +1,241 @@
-import Image from "next/image";
+"use client";
+
+import { useRef, useState } from "react";
+import {
+  FileText,
+  Loader2,
+  ShieldAlert,
+  ShieldCheck,
+  Upload,
+} from "lucide-react";
+import { analyzeEmail } from "@/lib/spam-api";
+import type { ClassificationResult } from "@/lib/types/spam";
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+function ProbabilityBar({
+  label,
+  value,
+  barClass,
+}: {
+  label: string;
+  value: number;
+  barClass: string;
+}) {
+  const percent = Math.round(value * 100);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm text-zinc-300">
+        <span>{label}</span>
+        <span className="font-mono text-zinc-100">{formatPercent(value)}</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-zinc-700">
+        <div
+          className={`h-full rounded-full transition-[width] ${barClass}`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
+  const [conteudoEmail, setConteudoEmail] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [resultado, setResultado] = useState<ClassificationResult | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  function handleSelecionarArquivo() {
+    inputRef.current?.click();
+  }
+
+  function handleArquivoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isTxt =
+      file.name.toLowerCase().endsWith(".txt") ||
+      file.type === "text/plain" ||
+      file.type === "";
+
+    if (!isTxt) {
+      setErro("Selecione apenas arquivos .txt.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      setConteudoEmail(text);
+      setNomeArquivo(file.name);
+      setResultado(null);
+      setErro(null);
+    };
+    reader.onerror = () => {
+      setErro("Não foi possível ler o arquivo. Tente novamente.");
+    };
+    reader.readAsText(file, "UTF-8");
+    event.target.value = "";
+  }
+
+  async function handleAnalisar() {
+    const texto = conteudoEmail.trim();
+    if (!texto || carregando) return;
+
+    setCarregando(true);
+    setErro(null);
+    setResultado(null);
+
+    try {
+      const res = await analyzeEmail(texto);
+      setResultado(res);
+    } catch (e) {
+      setErro(
+        e instanceof Error
+          ? e.message
+          : "Erro inesperado ao analisar o e-mail.",
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  const podeAnalisar = conteudoEmail.trim().length > 0 && !carregando;
+  const isSpam = resultado?.classe === "SPAM";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-zinc-900 text-zinc-100">
+      <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12 md:px-8">
+        <header className="space-y-2">
+          <div className="flex items-center gap-3 text-zinc-400">
+            <FileText className="h-6 w-6" aria-hidden />
+            <span className="text-sm font-medium uppercase tracking-wide">
+              Redes Bayesianas
+            </span>
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">
+            Detecção de Spam
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-zinc-400">
+            Carregue um e-mail em formato .txt, confira o conteúdo e execute a
+            classificação.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        </header>
+
+        <section className="space-y-4 rounded-xl border border-zinc-700 bg-zinc-800/50 p-6">
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".txt,text/plain"
+            className="hidden"
+            aria-label="Upload de arquivo de e-mail"
+            onChange={handleArquivoChange}
+          />
+
+          <button
+            type="button"
+            onClick={handleSelecionarArquivo}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <Upload className="h-4 w-4" aria-hidden />
+            Carregar arquivo .txt
+          </button>
+
+          {nomeArquivo && (
+            <p className="text-sm text-zinc-400">
+              Arquivo:{" "}
+              <span className="font-mono text-zinc-300">{nomeArquivo}</span>
+            </p>
+          )}
+
+          <textarea
+            readOnly
+            value={conteudoEmail}
+            placeholder="Carregue um arquivo .txt para visualizar o e-mail"
+            rows={12}
+            className="w-full resize-y rounded-lg border border-zinc-600 bg-zinc-900/80 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+          />
+        </section>
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={handleAnalisar}
+            disabled={!podeAnalisar}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-100 px-6 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Documentation
-          </a>
+            {carregando ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Analisando...
+              </>
+            ) : (
+              "Analisar Email"
+            )}
+          </button>
         </div>
+
+        {erro && (
+          <p
+            role="alert"
+            className="rounded-lg border border-rose-800/60 bg-rose-950/40 px-4 py-3 text-sm text-rose-200"
+          >
+            {erro}
+          </p>
+        )}
+
+        {resultado && (
+          <section
+            className="space-y-6 rounded-xl border border-zinc-700 bg-zinc-800/50 p-6"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-4">
+              {isSpam ? (
+                <ShieldAlert
+                  className="h-8 w-8 shrink-0 text-rose-400"
+                  aria-hidden
+                />
+              ) : (
+                <ShieldCheck
+                  className="h-8 w-8 shrink-0 text-emerald-400"
+                  aria-hidden
+                />
+              )}
+              <div className="space-y-1">
+                <p className="text-sm text-zinc-400">Classe final</p>
+                <p
+                  className={`text-2xl font-bold ${
+                    isSpam ? "text-rose-400" : "text-emerald-400"
+                  }`}
+                >
+                  {isSpam ? "SPAM" : "NÃO SPAM (HAM)"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t border-zinc-700 pt-6">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+                Probabilidades
+              </h2>
+              <ProbabilityBar
+                label="P(SPAM)"
+                value={resultado.probabilidadeSpam}
+                barClass="bg-rose-500"
+              />
+              <ProbabilityBar
+                label="P(HAM)"
+                value={resultado.probabilidadeHam}
+                barClass="bg-emerald-500"
+              />
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
