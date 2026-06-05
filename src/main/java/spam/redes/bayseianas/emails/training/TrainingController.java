@@ -1,17 +1,25 @@
 package spam.redes.bayseianas.emails.training;
 
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * Expõe o endpoint para acionar manualmente o treinamento do modelo Naive Bayes.
+ * Treinamento assíncrono do modelo Naive Bayes.
  *
  * <pre>
- *   POST /api/model/train
+ *   POST /api/model/train              → 202 Accepted + jobId
+ *   GET  /api/model/train/status/{id}  → progresso e sumário
+ *   GET  /api/model/train/latest       → último job disparado
  * </pre>
  */
 @RestController
@@ -19,28 +27,29 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TrainingController {
 
-    private final NaiveBayesTrainingService trainingService;
+    private final TrainingJobService trainingJobService;
+    private final TrainingJobRegistry jobRegistry;
 
-    /**
-     * Dispara o treinamento completo do modelo e retorna um sumário com as estatísticas.
-     *
-     * <p>Exemplo de resposta:
-     * <pre>
-     * {
-     *   "totalSpamEmails": 4827,
-     *   "totalHamEmails":  2551,
-     *   "totalSpamWords":  812345,
-     *   "totalHamWords":   430210,
-     *   "vocabularySize":  47813,
-     *   "elapsedTimeMs":   3210
-     * }
-     * </pre>
-     *
-     * @return 200 OK com o {@link TrainingSummary} serializado em JSON.
-     */
     @PostMapping("/train")
-    public ResponseEntity<TrainingSummary> train() {
-        TrainingSummary summary = trainingService.trainModel();
-        return ResponseEntity.ok(summary);
+    public ResponseEntity<TrainingJobResponse> train() {
+        TrainingJob job = trainingJobService.startTraining();
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(TrainingJobResponse.from(job));
+    }
+
+    @GetMapping("/train/status/{jobId}")
+    public ResponseEntity<TrainingJobResponse> status(@PathVariable UUID jobId) {
+        TrainingJob job = jobRegistry.find(jobId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Job de treinamento não encontrado: " + jobId));
+        return ResponseEntity.ok(TrainingJobResponse.from(job));
+    }
+
+    @GetMapping("/train/latest")
+    public ResponseEntity<TrainingJobResponse> latest() {
+        TrainingJob job = jobRegistry.findLatest()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Nenhum treinamento foi iniciado ainda."));
+        return ResponseEntity.ok(TrainingJobResponse.from(job));
     }
 }

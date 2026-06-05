@@ -63,10 +63,10 @@ async function apiAnalyze(conteudo: string): Promise<ClassificationResult> {
     return mockAnalyze(conteudo);
   }
 
-  const response = await fetch(`${baseUrl}/classify`, {
+  const response = await fetch(`${baseUrl}/api/classify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ texto: conteudo }),
+    body: JSON.stringify({ text: conteudo }),
   });
 
   if (!response.ok) {
