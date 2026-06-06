@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FileText,
   Loader2,
@@ -8,8 +8,11 @@ import {
   ShieldCheck,
   Upload,
 } from "lucide-react";
-import { analyzeEmail } from "@/lib/spam-api";
+import { BackendStatusBanner } from "@/components/BackendStatusBanner";
+import { checkBackendHealth, classifyEmail } from "@/lib/spam-api";
 import type { ClassificationResult } from "@/lib/types/spam";
+
+const HEALTH_CHECK_INTERVAL_MS = 30_000;
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
@@ -44,11 +47,38 @@ function ProbabilityBar({
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const apiUrl = process.env.NEXT_PUBLIC_SPAM_API_URL?.replace(/\/$/, "");
+
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [conteudoEmail, setConteudoEmail] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [resultado, setResultado] = useState<ClassificationResult | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [backendOffline, setBackendOffline] = useState(false);
+
+  useEffect(() => {
+    if (!apiUrl) {
+      setBackendOffline(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function runHealthCheck() {
+      const healthy = await checkBackendHealth();
+      if (!cancelled) {
+        setBackendOffline(!healthy);
+      }
+    }
+
+    runHealthCheck();
+    const intervalId = setInterval(runHealthCheck, HEALTH_CHECK_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [apiUrl]);
 
   function handleSelecionarArquivo() {
     inputRef.current?.click();
@@ -84,7 +114,7 @@ export default function Home() {
     event.target.value = "";
   }
 
-  async function handleAnalisar() {
+  const handleAnalisar = useCallback(async () => {
     const texto = conteudoEmail.trim();
     if (!texto || carregando) return;
 
@@ -93,7 +123,7 @@ export default function Home() {
     setResultado(null);
 
     try {
-      const res = await analyzeEmail(texto);
+      const res = await classifyEmail(texto);
       setResultado(res);
     } catch (e) {
       setErro(
@@ -104,14 +134,19 @@ export default function Home() {
     } finally {
       setCarregando(false);
     }
-  }
+  }, [conteudoEmail, carregando]);
 
   const podeAnalisar = conteudoEmail.trim().length > 0 && !carregando;
   const isSpam = resultado?.classe === "SPAM";
+  const showBackendBanner = Boolean(apiUrl && backendOffline);
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
-      <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12 md:px-8">
+      <main
+        className={`mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12 md:px-8 ${
+          showBackendBanner ? "pb-24" : ""
+        }`}
+      >
         <header className="space-y-2">
           <div className="flex items-center gap-3 text-zinc-400">
             <FileText className="h-6 w-6" aria-hidden />
@@ -237,6 +272,10 @@ export default function Home() {
           </section>
         )}
       </main>
+
+      {showBackendBanner && apiUrl && (
+        <BackendStatusBanner apiUrl={apiUrl} />
+      )}
     </div>
   );
 }
