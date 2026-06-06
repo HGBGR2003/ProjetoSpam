@@ -114,6 +114,13 @@ export default function Home() {
     event.target.value = "";
   }
 
+  function handleConteudoChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    setConteudoEmail(event.target.value);
+    setNomeArquivo(null);
+    setResultado(null);
+    setErro(null);
+  }
+
   const handleAnalisar = useCallback(async () => {
     const texto = conteudoEmail.trim();
     if (!texto || carregando) return;
@@ -158,8 +165,8 @@ export default function Home() {
             Detecção de Spam
           </h1>
           <p className="text-zinc-400">
-            Carregue um e-mail em formato .txt, confira o conteúdo e execute a
-            classificação.
+            Carregue um arquivo .txt ou digite/cole o texto do e-mail abaixo e
+            execute a classificação.
           </p>
         </header>
 
@@ -189,13 +196,18 @@ export default function Home() {
             </p>
           )}
 
-          <textarea
-            readOnly
-            value={conteudoEmail}
-            placeholder="Carregue um arquivo .txt para visualizar o e-mail"
-            rows={12}
-            className="w-full resize-y rounded-lg border border-zinc-600 bg-zinc-900/80 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-          />
+          <label className="block space-y-2">
+            <span className="text-sm text-zinc-400">
+              Texto do e-mail
+            </span>
+            <textarea
+              value={conteudoEmail}
+              onChange={handleConteudoChange}
+              placeholder="Digite, cole ou carregue um arquivo .txt com o conteúdo do e-mail"
+              rows={12}
+              className="w-full resize-y rounded-lg border border-zinc-600 bg-zinc-900/80 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            />
+          </label>
         </section>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
