@@ -1,0 +1,20 @@
+target/
+*.class
+*.jar
+*.war
+
+# Front-end (não faz parte do build do backend)
+front-end/
+
+# Dataset bruto (importado em runtime pelo StartupRunner)
+dataset/
+
+# IDE e controle de versão
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Docker
+docker-compose.yml
+Dockerfile
