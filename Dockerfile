@@ -23,6 +23,8 @@ RUN ./mvnw package -DskipTests -q
 # ─────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
 
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # Copia apenas o JAR gerado

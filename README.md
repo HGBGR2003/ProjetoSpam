@@ -32,6 +32,59 @@ Classificador automático de e-mails spam/ham utilizando técnicas de aprendizad
 
 ---
 
+## Executar com Docker
+
+### Pré-requisitos
+
+- Docker Desktop ou Docker Engine + Compose v2
+- Pasta `dataset/spam/` e `dataset/ham/` na raiz do projeto (arquivos `.txt` do corpus)
+
+### Subir tudo de uma vez
+
+```bash
+docker compose up --build
+```
+
+Isso sobe, em ordem: **PostgreSQL** → **backend Spring Boot** → **front-end Next.js**.
+
+### URLs após subida
+
+| Serviço | URL |
+|---------|-----|
+| Front-end | http://localhost:3000 |
+| Backend API | http://localhost:8080 |
+| PostgreSQL (host) | localhost:5433 |
+
+### Fluxo pós-subida (treino manual)
+
+1. Aguardar nos logs do backend as mensagens `Importação concluída` (na primeira vez pode demorar).
+2. Disparar o treinamento:
+   ```bash
+   curl -X POST http://localhost:8080/api/model/train
+   ```
+3. Acompanhar o progresso:
+   ```bash
+   curl http://localhost:8080/api/model/train/latest
+   ```
+4. Quando `status` = `COMPLETED`, abrir http://localhost:3000 e classificar e-mails.
+
+### Comandos úteis
+
+```bash
+docker compose down          # parar os containers
+docker compose down -v       # parar e apagar volume do banco (reset total)
+docker compose logs -f backend
+curl http://localhost:8080/actuator/health   # verificar saúde do backend
+```
+
+### Observações Docker
+
+- O dataset **não** entra na imagem; é montado via volume `./dataset:/app/dataset`.
+- Se as pastas `dataset/spam` ou `dataset/ham` não existirem, o backend sobe normalmente, mas sem dados para treino.
+- O treinamento **não** é automático na subida — execute `POST /api/model/train` após a importação.
+
+---
+
 ## Treinamento do modelo (Naive Bayes)
 
 O treinamento é **assíncrono** e otimizado para grandes volumes (~630k e-mails): leitura por cursor (sem OFFSET), limpeza de texto, INSERT em bulk via JDBC.
