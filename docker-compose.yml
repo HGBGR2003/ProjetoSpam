@@ -2,7 +2,9 @@ services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
-    image: postgres:18-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.db
     container_name: spamdetector-db
     restart: unless-stopped
     environment:
@@ -14,7 +16,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/init:/docker-entrypoint-initdb.d:ro
-      - ./modelo_treinado.sql:/backup/modelo_treinado.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d spamdetector"]
       interval: 10s
