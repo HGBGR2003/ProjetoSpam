@@ -12,7 +12,8 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Postgres 18+: montar em /var/lib/postgresql (dados em 18/docker internamente)
+      - pgdata:/var/lib/postgresql
       - ./docker/init:/docker-entrypoint-initdb.d:ro
       - ./modelo_treinado.sql:/backup/modelo_treinado.sql:ro
     healthcheck:

@@ -62,12 +62,21 @@ Confirme que o arquivo tem ~200 MB (não ~130 bytes — isso seria só o ponteir
 ### Subir tudo de uma vez
 
 ```bash
+# Primeira subida ou após mudança no dump: apague o volume antigo
+docker compose down -v
+
 docker compose up --build
 ```
 
 Ordem de subida: **PostgreSQL** (restore do dump) → **backend** → **front-end**.
 
-Na **primeira execução**, aguarde nos logs do container `db` a mensagem `Restore concluído`. O restore de ~200 MB pode levar **5 a 30 minutos**, conforme o hardware.
+Na **primeira execução**, aguarde nos logs do container `db` a mensagem `=== Restore concluído ===`. O restore de ~200 MB pode levar **5 a 30 minutos**, conforme o hardware.
+
+Em outro terminal, acompanhe:
+
+```bash
+docker compose logs -f db
+```
 
 ### Dockerfile
 
@@ -81,7 +90,7 @@ WORKDIR /build
 COPY pom.xml ./
 COPY .mvn .mvn
 COPY mvnw ./
-RUN chmod +x mvnw
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 
 # Baixa dependências sem compilar (aproveita cache Docker)
 RUN ./mvnw dependency:go-offline -q
@@ -142,8 +151,19 @@ curl http://localhost:8080/actuator/health
 
 - **Não** é necessário pasta `dataset/` nem `POST /api/model/train` para avaliar o projeto.
 - O restore roda **somente** na primeira criação do volume `pgdata`. Subidas seguintes reutilizam o banco persistido.
-- Se o banco não foi restaurado (volume antigo vazio), execute `docker compose down -v` e suba novamente.
+- Se o banco não foi restaurado (volume antigo ou configuração incorreta), execute `docker compose down -v` e suba novamente.
+- O Postgres 18 exige volume em `/var/lib/postgresql` (já configurado no `docker-compose.yml`).
 - Para desenvolvimento local com importação manual do corpus, use `APP_IMPORT_ENABLED=true` e monte `./dataset` (ver seção de treinamento abaixo).
+
+### Publicar no GitHub (quem mantém o repositório)
+
+```bash
+git lfs install
+git lfs ls-files          # deve listar modelo_treinado.sql
+git add .
+git commit -m "sua mensagem"
+git push
+```
 
 ---
 

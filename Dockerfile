@@ -9,7 +9,8 @@ WORKDIR /build
 COPY pom.xml ./
 COPY .mvn .mvn
 COPY mvnw ./
-RUN chmod +x mvnw
+# Corrige CRLF (Windows) para o script rodar no Alpine Linux
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 
 # Baixa dependências sem compilar (aproveita cache Docker)
 RUN ./mvnw dependency:go-offline -q

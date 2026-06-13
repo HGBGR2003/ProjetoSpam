@@ -1,1 +1,2 @@
 modelo_treinado.sql filter=lfs diff=lfs merge=lfs -text
+mvnw text eol=lf
