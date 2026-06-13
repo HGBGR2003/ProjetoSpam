@@ -17,11 +17,16 @@ services:
       - ./docker/init:/docker-entrypoint-initdb.d:ro
       - ./modelo_treinado.sql:/backup/modelo_treinado.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d spamdetector"]
+      # Healthy só após COPY completo (última linha do vocabulário presente)
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d spamdetector && psql -U postgres -d spamdetector -tAc 'SELECT 1 FROM word_frequencies WHERE id = 2732713 LIMIT 1' | grep -q 1",
+        ]
       interval: 10s
-      timeout: 5s
-      retries: 120
-      start_period: 1800s
+      timeout: 10s
+      retries: 60
+      start_period: 600s
 
   # ── Backend Spring Boot ─────────────────────────────────────────────────────
   backend:
@@ -47,8 +52,8 @@ services:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 18
-      start_period: 90s
+      retries: 30
+      start_period: 120s
 
   # ── Front-end Next.js ───────────────────────────────────────────────────────
   frontend:

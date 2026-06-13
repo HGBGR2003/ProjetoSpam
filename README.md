@@ -34,15 +34,15 @@ Classificador automático de e-mails spam/ham utilizando técnicas de aprendizad
 
 ## Executar com Docker
 
-O projeto inclui o **modelo já treinado** (`modelo_treinado.sql`, ~200 MB via Git LFS). Na primeira subida, o PostgreSQL restaura esse dump automaticamente — **não é necessário treinar o modelo**.
+O projeto inclui o **modelo já treinado** (`modelo_treinado.sql`, ~90 MB via Git LFS). Na primeira subida, o PostgreSQL restaura esse dump automaticamente — **não é necessário treinar o modelo**.
 
-O arquivo contém apenas `word_frequencies` e `model_metadata` (sem e-mails de treinamento).
+O arquivo contém `word_frequencies` e `model_metadata` em formato **COPY** (restore rápido, ~2–8 min na primeira subida).
 
 ### Pré-requisitos
 
 - Docker Desktop ou Docker Engine + Compose v2
 - [Git LFS](https://git-lfs.com/) instalado (obrigatório para clonar o dump)
-- Arquivo `modelo_treinado.sql` na raiz do projeto (~200 MB após `git lfs pull`)
+- Arquivo `modelo_treinado.sql` na raiz do projeto (~90 MB após `git lfs pull`)
 
 ### Obter o modelo pré-treinado
 
@@ -55,7 +55,7 @@ cd ProjetoSpam
 git lfs pull
 ```
 
-Confirme que o arquivo tem ~200 MB (não ~130 bytes — isso seria só o ponteiro LFS).
+Confirme que o arquivo tem ~90 MB (não ~130 bytes — isso seria só o ponteiro LFS).
 
 **Opção B — Link externo:** baixe `modelo_treinado.sql` e coloque na raiz do projeto, ao lado de `docker-compose.yml`.
 
@@ -70,7 +70,7 @@ docker compose up --build
 
 Ordem de subida: **PostgreSQL** (restore do dump) → **backend** → **front-end**.
 
-Na **primeira execução**, aguarde nos logs do container `db` a mensagem `=== Restore concluído ===`. O restore de ~200 MB pode levar **5 a 30 minutos**, conforme o hardware.
+Na **primeira execução**, aguarde nos logs do container `db` a mensagem `=== Restore concluído ===`. O restore de ~90 MB (formato COPY) costuma levar **2 a 8 minutos**, conforme o hardware.
 
 Em outro terminal, acompanhe:
 
@@ -145,15 +145,43 @@ docker compose down -v           # parar e apagar volume (força novo restore na
 docker compose logs -f db        # acompanhar restore do banco
 docker compose logs -f backend
 curl http://localhost:8080/actuator/health
+
+# Validar que o modelo foi restaurado
+docker exec -it spamdetector-db psql -U postgres -d spamdetector -c "SELECT COUNT(*) FROM word_frequencies;"
+docker exec -it spamdetector-db psql -U postgres -d spamdetector -c "SELECT * FROM model_metadata LIMIT 1;"
 ```
 
 ### Observações Docker
 
 - **Não** é necessário pasta `dataset/` nem `POST /api/model/train` para avaliar o projeto.
 - O restore roda **somente** na primeira criação do volume `pgdata`. Subidas seguintes reutilizam o banco persistido.
+- Se o restore falhar na primeira subida (ex.: erro nos logs do `db`), o volume fica parcialmente inicializado e o init **não roda de novo**. É **obrigatório** executar `docker compose down -v` antes de subir outra vez.
 - Se o banco não foi restaurado (volume antigo ou configuração incorreta), execute `docker compose down -v` e suba novamente.
 - O Postgres 18 exige volume em `/var/lib/postgresql` (já configurado no `docker-compose.yml`).
+- O restore usa `docker/init/01-restore-model.sql` (executado pelo `psql`, sem script shell).
+- O backend só sobe depois que `model_metadata` existe no banco (healthcheck do Postgres).
+- Se o backend falhar com *Connection refused* enquanto o `db` ainda mostra `INSERT 0 1`, **aguarde o restore** e rode `docker compose up -d backend frontend`.
 - Para desenvolvimento local com importação manual do corpus, use `APP_IMPORT_ENABLED=true` e monte `./dataset` (ver seção de treinamento abaixo).
+
+### Git LFS no WSL (opcional)
+
+Se `git lfs pull` falhar no WSL com *"git-lfs is broken"*, instale o pacote:
+
+```bash
+sudo apt update && sudo apt install git-lfs
+git lfs install
+git lfs pull
+```
+
+Isso é necessário apenas para clonar/baixar o dump via Git — não afeta o Docker se `modelo_treinado.sql` já estiver na raiz (~90 MB).
+
+### Regenerar o dump otimizado
+
+Se precisar recriar o `modelo_treinado.sql` a partir de um dump com INSERTs individuais:
+
+```bash
+python scripts/optimize_model_dump.py --input dump_com_inserts.sql --output modelo_treinado.sql
+```
 
 ### Publicar no GitHub (quem mantém o repositório)
 
