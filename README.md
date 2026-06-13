@@ -34,15 +34,17 @@ Classificador automático de e-mails spam/ham utilizando técnicas de aprendizad
 
 ## Executar com Docker
 
-O projeto inclui o banco **já treinado** (`modelo_treinado.sql`, ~1 GB). Na primeira subida, o PostgreSQL restaura esse dump automaticamente — **não é necessário treinar o modelo**.
+O projeto inclui o **modelo já treinado** (`modelo_treinado.sql`, ~200 MB via Git LFS). Na primeira subida, o PostgreSQL restaura esse dump automaticamente — **não é necessário treinar o modelo**.
+
+O arquivo contém apenas `word_frequencies` e `model_metadata` (sem e-mails de treinamento).
 
 ### Pré-requisitos
 
 - Docker Desktop ou Docker Engine + Compose v2
-- Arquivo `modelo_treinado.sql` na raiz do projeto (via Git LFS ou download externo)
-- [Git LFS](https://git-lfs.com/) instalado (se clonar o repositório)
+- [Git LFS](https://git-lfs.com/) instalado (obrigatório para clonar o dump)
+- Arquivo `modelo_treinado.sql` na raiz do projeto (~200 MB após `git lfs pull`)
 
-### Obter o banco pré-treinado
+### Obter o modelo pré-treinado
 
 **Opção A — Git LFS (recomendado):**
 
@@ -53,7 +55,9 @@ cd ProjetoSpam
 git lfs pull
 ```
 
-**Opção B — Link externo:** baixe `modelo_treinado.sql` (Google Drive etc.) e coloque na raiz do projeto, ao lado de `docker-compose.yml`.
+Confirme que o arquivo tem ~200 MB (não ~130 bytes — isso seria só o ponteiro LFS).
+
+**Opção B — Link externo:** baixe `modelo_treinado.sql` e coloque na raiz do projeto, ao lado de `docker-compose.yml`.
 
 ### Subir tudo de uma vez
 
@@ -63,7 +67,7 @@ docker compose up --build
 
 Ordem de subida: **PostgreSQL** (restore do dump) → **backend** → **front-end**.
 
-Na **primeira execução**, aguarde nos logs do container `db` a mensagem `Restore concluído`. O restore de ~1 GB pode levar **15 a 60 minutos**, conforme o hardware.
+Na **primeira execução**, aguarde nos logs do container `db` a mensagem `Restore concluído`. O restore de ~200 MB pode levar **5 a 30 minutos**, conforme o hardware.
 
 ### Dockerfile
 

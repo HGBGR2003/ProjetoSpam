@@ -19,8 +19,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d spamdetector"]
       interval: 10s
       timeout: 5s
-      retries: 60
-      start_period: 120s
+      retries: 120
+      start_period: 1800s
 
   # ── Backend Spring Boot ─────────────────────────────────────────────────────
   backend:
