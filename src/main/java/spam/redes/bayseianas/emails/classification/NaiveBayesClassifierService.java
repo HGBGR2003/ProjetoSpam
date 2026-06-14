@@ -18,25 +18,6 @@ import spam.redes.bayseianas.emails.model.ModelMetadataRepository;
 import spam.redes.bayseianas.emails.model.WordFrequencyEntity;
 import spam.redes.bayseianas.emails.model.WordFrequencyRepository;
 
-/**
- * Classificador Naive Bayes com suavização de Laplace e threshold ajustável.
- *
- * <h3>Por que prior balanceado (0.5/0.5)?</h3>
- * <p>A base de treinamento possui ~600.000 spam para ~2.000 ham (razão 300:1).
- * Usar os priors empíricos faria com que qualquer e-mail fosse classificado como
- * spam apenas pelo desequilíbrio de volume — mesmo e-mails claramente legítimos.
- * O prior balanceado elimina esse viés e deixa as <em>likelihoods</em> das palavras
- * serem os únicos fatores de discriminação.
- *
- * <h3>Por que threshold?</h3>
- * <p>Com prior 0.5/0.5 o ponto de corte natural é 50%. O threshold configurável
- * ({@value #SPAM_THRESHOLD_PROPERTY}, padrão {@value #DEFAULT_SPAM_THRESHOLD})
- * permite elevar essa barreira sem recompilar — útil para reduzir falsos positivos
- * em produção conforme feedback dos usuários.
- *
- * <p>Exemplo: {@code classifier.spam-threshold=0.75} só classifica como spam quando
- * a probabilidade calculada supera 75%.
- */
 @Service
 public class NaiveBayesClassifierService {
 
@@ -46,11 +27,6 @@ public class NaiveBayesClassifierService {
     static final String SPAM_THRESHOLD_PROPERTY = "classifier.spam-threshold";
     static final double DEFAULT_SPAM_THRESHOLD   = 0.75;
 
-    /**
-     * Limiar mínimo de P(spam) para classificar um e-mail como spam.
-     * Configurável em {@code application.properties} via {@value #SPAM_THRESHOLD_PROPERTY}.
-     * Valor padrão: {@value #DEFAULT_SPAM_THRESHOLD}.
-     */
     @Value("${" + SPAM_THRESHOLD_PROPERTY + ":" + DEFAULT_SPAM_THRESHOLD + "}")
     private double spamThreshold;
 
@@ -81,8 +57,6 @@ public class NaiveBayesClassifierService {
         long totalHamWords   = metadata.getTotalHamWords();
         long vocabularySize  = metadata.getVocabularySize();
 
-        // Prior balanceado: ignora a desproporção de volume da base de treinamento.
-        // As likelihoods das palavras (Laplace) são o único fator de discriminação.
         double logScoreSpam = Math.log(0.5);
         double logScoreHam  = Math.log(0.5);
 
@@ -112,10 +86,6 @@ public class NaiveBayesClassifierService {
         return buildResponse(probs[0], probs[1]);
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers privados
-    // -------------------------------------------------------------------------
-
     private Map<String, WordFrequencyEntity> loadFrequencies(List<String> tokens) {
         Set<String> uniqueTokens = new HashSet<>(tokens);
         Map<String, WordFrequencyEntity> result = new HashMap<>(uniqueTokens.size());
@@ -132,10 +102,6 @@ public class NaiveBayesClassifierService {
         return result;
     }
 
-    /**
-     * Aplica o threshold configurável para decidir a classe final.
-     * Um e-mail só é marcado como SPAM se P(spam) >= {@link #spamThreshold}.
-     */
     private ClassificationResponse buildResponse(double pSpam, double pHam) {
         String classe = pSpam >= spamThreshold ? "SPAM" : "NÃO SPAM (HAM)";
         log.debug("Classificação: {} | P(spam)={} P(ham)={} threshold={}",

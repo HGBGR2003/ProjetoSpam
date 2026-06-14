@@ -12,15 +12,9 @@ import lombok.Setter;
 @Setter
 public class TrainingProperties {
 
-    /** E-mails lidos por lote (keyset). */
     private int batchSize = 5_000;
 
-    /** Linhas por batch INSERT JDBC. */
     private int insertBatchSize = 1_000;
 
-    /**
-     * Limite de e-mails processados (0 = todos).
-     * Útil para testes locais rápidos antes do dataset completo.
-     */
     private long maxEmails = 0;
 }

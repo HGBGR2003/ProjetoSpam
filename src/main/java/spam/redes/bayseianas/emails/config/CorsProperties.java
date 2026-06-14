@@ -15,10 +15,6 @@ import lombok.Setter;
 @Setter
 public class CorsProperties {
 
-    /**
-     * Origens permitidas, separadas por vírgula.
-     * Padrão: frontend Next.js em desenvolvimento.
-     */
     private String allowedOrigins = "http://localhost:3000,http://127.0.0.1:3000";
 
     public List<String> allowedOriginsList() {

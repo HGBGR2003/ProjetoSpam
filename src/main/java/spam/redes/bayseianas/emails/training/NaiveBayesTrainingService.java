@@ -16,9 +16,6 @@ import spam.redes.bayseianas.emails.Emails.EmailRepository;
 import spam.redes.bayseianas.emails.classification.EmailTokenizer;
 import spam.redes.bayseianas.emails.training.WordFrequencyBulkWriter.WordCountRow;
 
-/**
- * Treinamento Naive Bayes com leitura keyset, limpeza de texto e persistência JDBC em lotes.
- */
 @Service
 @RequiredArgsConstructor
 public class NaiveBayesTrainingService {

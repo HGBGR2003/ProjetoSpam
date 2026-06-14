@@ -9,9 +9,6 @@ import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import spam.redes.bayseianas.emails.Emails.EmailCleanerService;
 
-/**
- * Tokenização compartilhada entre treinamento e classificação.
- */
 @Component
 @RequiredArgsConstructor
 public class EmailTokenizer {

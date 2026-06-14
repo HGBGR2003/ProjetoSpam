@@ -53,7 +53,6 @@ public class EmailEntity {
         return createdAt;
     }
 
-    // Setters
     public void setId(Long id) {
         this.id = id;
     }

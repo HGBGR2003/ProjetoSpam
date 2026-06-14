@@ -1,6 +1,5 @@
 services:
 
-  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
     image: postgres:18-alpine
     container_name: spamdetector-db
@@ -12,12 +11,12 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      # Postgres 18+: montar em /var/lib/postgresql (dados em 18/docker internamente)
+
       - pgdata:/var/lib/postgresql
       - ./docker/init:/docker-entrypoint-initdb.d:ro
       - ./modelo_treinado.sql:/backup/modelo_treinado.sql:ro
     healthcheck:
-      # Healthy só após COPY completo (última linha do vocabulário presente)
+
       test:
         [
           "CMD-SHELL",
@@ -28,7 +27,7 @@ services:
       retries: 60
       start_period: 600s
 
-  # ── Backend Spring Boot ─────────────────────────────────────────────────────
+
   backend:
     build:
       context: .
@@ -55,7 +54,7 @@ services:
       retries: 30
       start_period: 120s
 
-  # ── Front-end Next.js ───────────────────────────────────────────────────────
+
   frontend:
     build:
       context: ./front-end/projetospamfinal

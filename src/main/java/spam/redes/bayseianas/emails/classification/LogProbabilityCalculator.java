@@ -1,8 +1,5 @@
 package spam.redes.bayseianas.emails.classification;
 
-/**
- * Cálculos de probabilidade em log-space com suavização de Laplace.
- */
 public final class LogProbabilityCalculator {
 
     private LogProbabilityCalculator() {}
@@ -18,11 +15,6 @@ public final class LogProbabilityCalculator {
         return Math.log((double) classEmails / totalEmails);
     }
 
-    /**
-     * Converte log-scores em probabilidades normalizadas (log-sum-exp).
-     *
-     * @return array [pSpam, pHam] somando 1.0
-     */
     public static double[] normalizeLogScores(double logScoreSpam, double logScoreHam) {
         if (Double.isInfinite(logScoreSpam) && Double.isInfinite(logScoreHam)) {
             return new double[]{0.5, 0.5};

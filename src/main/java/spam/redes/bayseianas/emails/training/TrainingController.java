@@ -13,15 +13,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Treinamento assíncrono do modelo Naive Bayes.
- *
- * <pre>
- *   POST /api/model/train              → 202 Accepted + jobId
- *   GET  /api/model/train/status/{id}  → progresso e sumário
- *   GET  /api/model/train/latest       → último job disparado
- * </pre>
- */
 @RestController
 @RequestMapping("/api/model")
 @RequiredArgsConstructor
